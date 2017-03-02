@@ -471,6 +471,10 @@ class Transport(BaseTransport):
         values, which also enables keepalive packets, but specifies
         options specific to your OS implementation
     :param str vhost: specify a virtual hostname to provide in the 'host' header of the connection
+    :param proxy_host: if specified, the http proxy to connect through
+    :param proxy_host: if specified, the http proxy port
+    :param proxy_user: if specified, the username for authenticating to proxy
+    :param proxy_password: if specified, the password for authenticating to proxy
     """
 
     def __init__(self,
@@ -492,7 +496,11 @@ class Transport(BaseTransport):
                  timeout=None,
                  keepalive=None,
                  vhost=None,
-                 auto_decode=True
+                 auto_decode=True,
+                 proxy_host=None,
+                 proxy_port=None,
+                 proxy_user=None,
+                 proxy_password=None
                  ):
         BaseTransport.__init__(self, wait_on_receipt, auto_decode)
 
@@ -535,6 +543,12 @@ class Transport(BaseTransport):
         self.__reconnect_sleep_max = reconnect_sleep_max
         self.__reconnect_attempts_max = reconnect_attempts_max
         self.__timeout = timeout
+        self.__proxy_args = {}
+        if proxy_host:
+            self.__proxy_args = {"proxy_host": proxy_host,
+                                 "proxy_port": proxy_port,
+                                 "proxy_user": proxy_user,
+                                 "proxy_password": proxy_password}
 
         self.socket = None
         self.__socket_semaphore = threading.BoundedSemaphore(1)
@@ -708,7 +722,7 @@ class Transport(BaseTransport):
             for host_and_port in self.__host_and_ports:
                 try:
                     log.info("Attempting connection to host %s, port %s", host_and_port[0], host_and_port[1])
-                    self.socket = get_socket(host_and_port[0], host_and_port[1], self.__timeout)
+                    self.socket = get_socket(host_and_port[0], host_and_port[1], self.__timeout, **self.__proxy_args)
                     self.__enable_keepalive()
                     need_ssl = self.__need_ssl(host_and_port)
 
